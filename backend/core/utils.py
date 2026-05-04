@@ -3,16 +3,22 @@ from docx import Document
 import re
 from .job_data import JOB_DATABASE
 
+
+# -------------------------------
+# Skill aliases (normalized)
+# -------------------------------
 SKILL_ALIASES = {
     "javascript": ["js", "javascript"],
     "react": ["react", "reactjs"],
     "node": ["node", "nodejs"],
     "python": ["python", "py"],
-    "powerbi": ["powerbi","PowerBI","PBI"],
+    "powerbi": ["powerbi", "pbi"],
 }
 
 
+# -------------------------------
 # Resume text extraction
+# -------------------------------
 def extract_text_from_resume(resume_file):
     filename = getattr(resume_file, "name", "").lower()
 
@@ -20,93 +26,105 @@ def extract_text_from_resume(resume_file):
         reader = PyPDF2.PdfReader(resume_file)
         return "\n".join((page.extract_text() or "") for page in reader.pages)
 
-    if filename.endswith(".docx"):
+    elif filename.endswith(".docx"):
         document = Document(resume_file)
-        return "\n".join(paragraph.text for paragraph in document.paragraphs)
+        return "\n".join(p.text for p in document.paragraphs)
 
-    raise ValueError("Unsupported resume format. Please upload a PDF or DOCX file.")
+    else:
+        raise ValueError("Unsupported resume format. Upload PDF or DOCX.")
 
 
+# -------------------------------
 # Extract Email
+# -------------------------------
 def extract_email(text):
     pattern = r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
     match = re.search(pattern, text)
     return match.group(0) if match else None
 
+
+# -------------------------------
 # Extract Phone Number
+# -------------------------------
 def extract_phone(text):
     pattern = r"\+?\d[\d\s-]{8,}\d"
     match = re.search(pattern, text)
     return match.group(0) if match else None
 
 
-
-# Extract Resume Skills Based On JOB_DATABASE
+# -------------------------------
+# SAFE skill matching (FIXED)
+# -------------------------------
 def extract_resume_skills(resume_text):
     resume_text = resume_text.lower()
     found_skills = set()
 
     for job in JOB_DATABASE.values():
-        for skill in job["skills"]:
+        for skill in job.get("skills", []):  # ✅ SAFE
             skill_lower = skill.lower()
 
-            # Get aliases for this skill
             aliases = SKILL_ALIASES.get(skill_lower, [skill_lower])
 
             for alias in aliases:
-                if alias in resume_text:
+                # ✅ FIX: word boundary (NO false matches)
+                pattern = rf"\b{re.escape(alias)}\b"
+                if re.search(pattern, resume_text):
                     found_skills.add(skill_lower)
                     break
 
     return sorted(found_skills)
 
 
-# Extract skills from job description text
-def extract_job_skills(job_desc):
-    job_text = job_desc.lower()
-    found_skills = set()
+# -------------------------------
+# Extract job skills (optional)
+# -------------------------------
+def extract_job_skills(job_role):
+    job = JOB_DATABASE.get(job_role.lower())
 
-    for job in JOB_DATABASE.values():
-        for skill in job["skills"]:
-            skill_lower = skill.lower()
-            aliases = SKILL_ALIASES.get(skill_lower, [skill_lower])
+    if not job:
+        raise ValueError("Invalid job role")
 
-            for alias in aliases:
-                if alias in job_text:
-                    found_skills.add(skill_lower)
-                    break
-
-    return sorted(found_skills)
+    return [skill.lower() for skill in job.get("skills", [])]
 
 
-# Match resume skills against extracted job skills
+# -------------------------------
+# Match skills
+# -------------------------------
 def match_job_skills(resume_skills, job_skills):
-    resume_set = {skill.lower() for skill in resume_skills}
-    job_set = {skill.lower() for skill in job_skills}
+    resume_set = set(resume_skills)
+    job_set = set(job_skills)
 
-    matched_skills = sorted(skill for skill in job_set if skill in resume_set)
-    missing_skills = sorted(skill for skill in job_set if skill not in resume_set)
-    score = round((len(matched_skills) / len(job_set)) * 100, 2) if job_set else 0.0
+    matched = sorted(resume_set & job_set)
+    missing = sorted(job_set - resume_set)
+
+    score = round((len(matched) / len(job_set)) * 100, 2) if job_set else 0
 
     return {
-        "matched_skills": matched_skills,
-        "missing_skills": missing_skills,
+        "matched_skills": matched,
+        "missing_skills": missing,
         "match_score": score,
         "qualified": score >= 70,
     }
 
 
+# -------------------------------
+# MAIN FUNCTION
+# -------------------------------
+def analyze_resume(resume_file, job_role):
+    resume_text = extract_text_from_resume(resume_file)
 
+    email = extract_email(resume_text)
+    phone = extract_phone(resume_text)
 
+    resume_skills = extract_resume_skills(resume_text)
+    job_skills = extract_job_skills(job_role)
 
-# Match Skills
+    result = match_job_skills(resume_skills, job_skills)
 
-# def match_skills(resume_text, job_desc):
-#     resume_words = resume_text.lower().split()
-#     job_words = job_desc.lower().split()
-
-#     matched = set(resume_words) & set(job_words)
-
-#     score = (len(matched) / len(set(job_words))) * 100 if job_words else 0
-
-#     return list(matched), round(score, 2)
+    return {
+        "job_role": job_role.lower(),
+        "email": email,
+        "phone": phone,
+        "resume_skills": resume_skills,
+        **result
+    }

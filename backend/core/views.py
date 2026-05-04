@@ -14,7 +14,7 @@ from .utils import (
 def analyze_resume(request):
     if request.method == "POST":
         resume_file = request.FILES.get("resume_file")
-        job_desc = request.POST.get("jd_text")
+        job_desc = request.POST.get("job_role")
 
         if not resume_file or not job_desc:
             return JsonResponse({"error": "Missing resume file or job description"}, status=400)

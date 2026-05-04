@@ -35,11 +35,11 @@ export const useAnalyzer = () => {
     }
 
     // JD validation
-    if (!jdText || jdText.trim().length < 50) {
-      errors.jdText = 'Job description must be at least 50 characters.';
-    } else if (jdText.length > 5000) {
-      errors.jdText = 'Job description must be less than 5000 characters.';
-    }
+    // if (!jdText || jdText.trim().length < 50) {
+    //   errors.jdText = 'Job description must be at least 50 characters.';
+    // } else if (jdText.length > 5000) {
+    //   errors.jdText = 'Job description must be less than 5000 characters.';
+    // }
 
     return {
       valid: Object.keys(errors).length === 0,

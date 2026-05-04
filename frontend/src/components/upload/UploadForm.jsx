@@ -2,6 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { useAnalyzer } from '../../hooks/useAnalyzer';
 import { Upload, FileText, X, AlertCircle, Loader2 } from 'lucide-react';
 
+const jobRoles = [
+  "frontend developer",
+  "backend developer",
+  "full stack developer",
+  "data analyst",
+  "data scientist",
+  "machine learning engineer",
+  "ai engineer",
+  "devops engineer",
+  "cloud engineer",
+  "network engineer",
+  "cyber security analyst",
+  "software engineer",
+  "android developer",
+  "ios developer",
+  "qa engineer"
+];
+
 const UploadForm = ({ onResult }) => {
   const {
     file,
@@ -68,7 +86,8 @@ const UploadForm = ({ onResult }) => {
     }
   };
 
-  const isFormValid = file && jdText.trim().length >= 50 && jdText.length <= 5000 && Object.keys(validationErrors).length === 0;
+  const isFormValid = file && jdText.trim().length >= 0 && jdText.length <= 50 && Object.keys(validationErrors).length === 0;
+
 
   return (
     <div className="max-w-3xl mx-auto p-6 bg-white rounded-xl shadow-lg border border-gray-100">
@@ -134,30 +153,37 @@ const UploadForm = ({ onResult }) => {
         </div>
 
         {/* Job Description Section */}
-        <div className="space-y-2">
-          <div className="flex justify-between items-end mb-1">
-            <label className="block text-sm font-semibold text-gray-700">
-              Job Description
-            </label>
-            <span className={`text-xs ${jdText.length > 5000 || jdText.length < 50 ? 'text-amber-600' : 'text-gray-400'}`}>
-              {jdText.length} / 5000 characters
-            </span>
-          </div>
-          <textarea
-            value={jdText}
-            onChange={(e) => setJdText(e.target.value)}
-            disabled={isLoading}
-            placeholder="Paste the job description here (min 50 chars)..."
-            className={`w-full h-48 px-4 py-3 rounded-lg border focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all duration-200 resize-none ${
-              validationErrors.jdText ? 'border-red-300 bg-red-50' : 'border-gray-300'
-            } disabled:bg-gray-50 disabled:cursor-not-allowed`}
-          />
-          {validationErrors.jdText && (
-            <p className="text-xs text-red-500 flex items-center mt-1">
-              <AlertCircle className="w-3 h-3 mr-1" /> {validationErrors.jdText}
-            </p>
-          )}
-        </div>
+        {/* Job Role Dropdown */}
+<div className="space-y-2">
+  <label className="block text-sm font-semibold text-gray-700">
+    Select Job Role
+  </label>
+
+  <select
+    value={jdText}
+    onChange={(e) => setJdText(e.target.value)}
+    disabled={isLoading}
+    className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-indigo-500 outline-none ${
+      validationErrors.jdText
+        ? "border-red-300 bg-red-50"
+        : "border-gray-300"
+    }`}
+  >
+    <option value="">-- Select a role --</option>
+
+    {jobRoles.map((role, index) => (
+      <option key={index} value={role}>
+        {role.toUpperCase()}
+      </option>
+    ))}
+  </select>
+
+  {validationErrors.jdText && (
+    <p className="text-xs text-red-500 mt-1">
+      {validationErrors.jdText}
+    </p>
+  )}
+</div>
 
         {/* Submit Section */}
         <div className="pt-4">
